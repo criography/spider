@@ -1,0 +1,7 @@
+{
+	"name"    : "SpiderSock Component: {{name}}",
+	"version" : "1.0.0",
+	"type"    : "{{type}}",
+	"group"   : "{{group}}",
+	"slug"    : "{{slug}}"
+}

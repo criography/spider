@@ -1,0 +1,81 @@
+#!/usr/bin/env node
+
+var fs = require('fs');
+var path = require('path');
+var log = require('verbalize');
+var argv = require('minimist')(process.argv.slice(2));
+
+
+/**
+ * Everything in the file should be customized
+ */
+
+
+// Verbalize `runner`
+log.runner = 'spider';
+
+
+switch (argv._[0]){
+	case 'create':
+	case 'add':
+	case 'new':
+	case 'a':
+	case 'c':
+	case 'n':
+		console.log('create');
+		break;
+
+	case 'rename':
+	case 'r':
+		console.log('rem');
+		break;
+
+	case 'move':
+	case 'm':
+		console.log('move');
+		break;
+
+	case 'delete':
+	case 'd':
+		console.log('delete');
+		break;
+
+	case 'pull':
+	case 'p':
+		console.log('pull');
+		break;
+}
+// // Use `-f` or `--file` to specify the source file
+// var file  = argv._[0] || argv.f || argv.file || 'TODO.md';
+
+// // Use `-t` or `--task` to specify the text to append
+// var task = argv._[1] || argv.t || argv.task;
+
+
+// if (!file) {
+//   log.error('Please provide a source file, either as a first argument or with `-s`');
+// }
+
+// if (!task) {
+//   log.error('No tasks will be appended to "' + file + '" since you didn\'t specify anything.');
+// }
+
+
+/**
+ * Application
+ */
+
+
+// if(!fs.existsSync(file)) {
+//   fs.writeFileSync(file, '# Tasks\n\n');
+// }
+
+// fs.appendFile(file, ('- [ ] ' + task + '\n'), function (err) {
+//   if (err) {throw err;}
+
+//   log.writeln();
+//   log.writeln(log.gray('  todo [appended] ') + '\'' + task + '\' to ' + log.bold(file));
+
+//   // If all is well, log a success message.
+//   log.success('  ' + log.runner + ' [done]');
+// });
