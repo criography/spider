@@ -4,8 +4,8 @@ var fs    = require('fs'),
 		path  = require('path'),
 		log   = require('verbalize'),
 		argv  = require('minimist')(process.argv.slice(2)),
-
-		Create=require('../app/Create.spider');
+		Spider= {},
+		Create=require('../app/Create');
 
 // Verbalize `runner`
 log.runner = 'spider';
@@ -18,8 +18,8 @@ switch (argv._[0]){
 	case 'a':
 	case 'c':
 	case 'n':
-		console.log('create');
-		Create.init();
+
+		Create;
 		break;
 
 	case 'rename':
