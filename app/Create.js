@@ -8,6 +8,7 @@
 var inquirer = require('inquirer');
 var chalk = require('chalk');
 var sanitize = require('sanitize-filename');
+var Vars = require('./Vars');
 
 
 
@@ -16,8 +17,8 @@ var Create = function () {
 	"use strict";
 
 
-	this.componentPath = '';            /* composite path from components root to the current component's location */
-	this.componentRoot = '';            /* full path from cwd to the current component's location */
+	//this.componentPath = '';            /* composite path from components root to the current component's location */
+	//this.componentRoot = '';            /* full path from cwd to the current component's location */
 
 
 	this.prompts = [
@@ -137,6 +138,13 @@ var Create = function () {
 
 };
 
+
+
+
+
+
+
+
 Create.prototype = {
 
 	/**-----------------------------------------------------------------------------
@@ -152,7 +160,7 @@ Create.prototype = {
 			"use strict";
 
 			var _this = this;
-
+console.log(Vars.sourcePath);
 			inquirer.prompt( this.prompts, function (answers) {
 					this.componentName    = answers.componentName;
 					this.componentSlug    = sanitize(answers.componentSlug.replace(/\s+/g, '-'));
@@ -162,6 +170,8 @@ Create.prototype = {
 					this.componentPhp     = answers.componentPhp;
 					this.componentJs      = answers.componentJs;
 					this.componentJsName  = answers.componentJsName;
+
+					console.log(__global);
 
 					this.setPaths();
 				}.bind(this)
@@ -176,25 +186,6 @@ Create.prototype = {
 
 
 
-
-/**-----------------------------------------------------------------------------
- * setPaths
- * -----------------------------------------------------------------------------
- * sets and caches all required paths
- *
- * @private
- * @this      object        Main Object
- * @return    void
- * -----------------------------------------------------------------------------*/
-
-	setPaths : function(){
-	//	this.componentPath = this.componentType + 's/' + this.componentGroup + '/' + this.componentSlug;
-	//	this.componentRoot = './' + ( this.sockConfig['installer-path'] || 'components/' ) + this.componentPath + '/';
-	}
-
-/**-----------------------------------------------------------------------------
- * ENDOF: setPaths
- * -----------------------------------------------------------------------------*/
 
 
 };

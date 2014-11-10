@@ -4,8 +4,10 @@ var fs    = require('fs'),
 		path  = require('path'),
 		log   = require('verbalize'),
 		argv  = require('minimist')(process.argv.slice(2)),
-		Spider= {},
-		Create=require('../app/Create');
+		Spider= {};
+
+
+var Create=require('../app/Create');
 
 // Verbalize `runner`
 log.runner = 'spider';
