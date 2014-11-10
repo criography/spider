@@ -1,0 +1,4 @@
+spider
+======
+
+SpiderSock Component Manager
