@@ -1,7 +1,7 @@
 {
 	"name"            : "spider-master",
 	"description"     : "SpiderSock Component Manager",
-	"version"         : "0.1.1",
+	"version"         : "0.1.3",
 	"homepage"        : "https://github.com/criography/spider",
 	"author"          : "Marek Lenik (http://criography.com)",
 	"repository"      : {

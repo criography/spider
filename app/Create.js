@@ -13,14 +13,36 @@ var Vars = require('./Vars');
 
 
 
-var Create = function () {
+var Create = function Create(freshStart) {
 	"use strict";
 
+	this.freshStart = typeof freshStart !== 'undefined';
+console.log(this.freshStart);
 
-	//this.componentPath = '';            /* composite path from components root to the current component's location */
-	//this.componentRoot = '';            /* full path from cwd to the current component's location */
+	/* composite path from components root to the current component's location */
+	this.componentPath = '';
+
+	/* full path from cwd to the current component's location */
+	this.componentRoot = '';
+
+	/* inquirer placehoders for answers */
+	this.componentName    = '';
+	this.componentSlug    = '';
+	this.componentGroup   = '';
+	this.componentType    = '';
+	this.componentDeps    = '';
+	this.componentPhp     = '';
+	this.componentJs      = '';
+	this.componentJsName  = '';
 
 
+
+	//this.sockConfigPath = this.projectRoot + '/spidersock.json';
+	//this.sockConfig = require(this.sockConfigPath);
+
+
+
+	/* ask me questions, Sire */
 	this.prompts = [
 		{
 			type     : 'input',
@@ -159,8 +181,9 @@ Create.prototype = {
 		init : function(){
 			"use strict";
 
+		//console.log(freshStart);
 			var _this = this;
-console.log(Vars.sourcePath);
+
 			inquirer.prompt( this.prompts, function (answers) {
 					this.componentName    = answers.componentName;
 					this.componentSlug    = sanitize(answers.componentSlug.replace(/\s+/g, '-'));
@@ -171,7 +194,6 @@ console.log(Vars.sourcePath);
 					this.componentJs      = answers.componentJs;
 					this.componentJsName  = answers.componentJsName;
 
-					console.log(__global);
 
 					this.setPaths();
 				}.bind(this)
@@ -187,8 +209,37 @@ console.log(Vars.sourcePath);
 
 
 
+/**-----------------------------------------------------------------------------
+ * setPaths
+ * -----------------------------------------------------------------------------
+ * sets and caches all required paths
+ *
+ * @private
+ * @this      object        Main Object
+ * @return    void
+ * -----------------------------------------------------------------------------*/
+
+	setPaths : function(){
+		"use strict";
+
+		this.componentPath = this.componentType + 's/' + this.componentGroup + '/' + this.componentSlug;
+		//this.componentRoot = './' + ( this.sockConfig['installer-path'] || 'components/' ) + this.componentPath + '/';
+
+		console.log(this.componentPath);
+	}
+
+/**-----------------------------------------------------------------------------
+ * ENDOF: setPaths
+ * -----------------------------------------------------------------------------*/
+
 
 };
 
 
-module.exports = new Create();
+
+/* seems hacky, read up and ask people what's the best way to do this */
+module.exports = function(freshStart){
+	"use strict";
+
+	return new Create(freshStart);
+};

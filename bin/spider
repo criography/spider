@@ -7,40 +7,59 @@ var fs    = require('fs'),
 		Spider= {};
 
 
-var Create=require('../app/Create');
+var Add=require('../app/Add');
 
 // Verbalize `runner`
 log.runner = 'spider';
 
 
 switch (argv._[0]){
-	case 'create':
-	case 'add':
-	case 'new':
-	case 'a':
-	case 'c':
-	case 'n':
 
+	/* create new Spider as part of existing project */
+	case 'add':
+	case 'a':
+		Add;
+		break;
+
+
+	/* create new Spider as part of existing project */
+	case 'clone':
+	case 'c':
+		//Clone;
+		break;
+
+
+	/* create new Spider repo and project */
+	case 'init':
+	case 'new':
+	case 'i':
+	case 'n':
 		Create;
 		break;
 
+
 	case 'rename':
 	case 'r':
-		console.log('rem');
+		//Rename;
 		break;
+
 
 	case 'move':
 	case 'm':
-		console.log('move');
+		//Move;
 		break;
+
 
 	case 'delete':
 	case 'd':
-		console.log('delete');
+		//Delete;
 		break;
 
+
+	case 'update':
 	case 'pull':
+	case 'u':
 	case 'p':
-		console.log('pull');
+		//Update;
 		break;
 }

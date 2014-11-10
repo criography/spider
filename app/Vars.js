@@ -4,20 +4,23 @@
 /*jshint smarttabs: true */
 
 
+
+var path = require('path');
+
 // Private
 
 var Vars = function () {
 	"use strict";
 
-	/* full OS path to the source of component */
-	this.sourcePath     = '';
+	/* full OS path to the templates dir of component */
+	this.templatesPath     = '';
 
-	/* composite path from components root to the current component's location */
-	this.componentPath  = '';
+	/* project root. Should it be cached? */
+	this.projectRoot = process.cwd();
 
-
-	/* full path from cwd to the current component's location */
-	this.componentRoot  = '';
+	/* marker string placed in controller files to define injection places */
+	/* @TODO separate imports to separate files, which will remove the need for it */
+	this.projectControllerMarker = '';
 
 
 	this.init();
@@ -45,7 +48,7 @@ Vars.prototype = {
 	init : function () {
 		"use strict";
 
-		this.setPaths();
+		this.setVars();
 	},
 
 	/**-----------------------------------------------------------------------------
@@ -58,7 +61,7 @@ Vars.prototype = {
 
 
 	/**-----------------------------------------------------------------------------
-	 * setPaths
+	 * setVars
 	 * -----------------------------------------------------------------------------
 	 * sets and caches all required paths
 	 *
@@ -67,16 +70,16 @@ Vars.prototype = {
 	 * @return    void
 	 * -----------------------------------------------------------------------------*/
 
-	setPaths : function () {
+	setVars : function () {
 		"use strict";
 
-		this.sourcePath     = require.resolve('yo');
-		//this.componentPath  = this.componentType + 's/' + this.componentGroup + '/' + this.componentSlug;
-		//this.componentRoot  = './' + ( this.sockConfig['installer-path'] || 'components/' ) + this.componentPath + '/';
+		this.templatesPath            = __dirname + '/templates/';
+
+		this.projectControllerMarker  = '/* --spiders:{{type}}s-- */';
 	}
 
 	/**-----------------------------------------------------------------------------
-	 * ENDOF: setPaths
+	 * ENDOF: setVars
 	 * -----------------------------------------------------------------------------*/
 
 
