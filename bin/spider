@@ -7,7 +7,7 @@ var fs    = require('fs'),
 		Spider= {};
 
 
-var Add=require('../app/Add');
+var Create=require('../app/Create');
 
 // Verbalize `runner`
 log.runner = 'spider';
@@ -18,7 +18,7 @@ switch (argv._[0]){
 	/* create new Spider as part of existing project */
 	case 'add':
 	case 'a':
-		Add;
+		Create;
 		break;
 
 

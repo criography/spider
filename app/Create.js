@@ -1,6 +1,4 @@
-/** =======================================================================================================================
- * HELPERS
- * ======================================================================================================================= */
+"use strict";
 /*jshint smarttabs: true */
 
 
@@ -8,16 +6,19 @@
 var inquirer = require('inquirer');
 var chalk = require('chalk');
 var sanitize = require('sanitize-filename');
+var async = require('async');
+var fs = require('fs');
+var mkdirp = require('mkdirp');
+
 var Vars = require('./Vars');
 
 
 
 
-var Create = function Create(freshStart) {
-	"use strict";
+var Create = function Create() {
 
-	this.freshStart = typeof freshStart !== 'undefined';
-console.log(this.freshStart);
+	/* base path to where all components are */
+	this.componentsBasePath = '';
 
 	/* composite path from components root to the current component's location */
 	this.componentPath = '';
@@ -35,8 +36,9 @@ console.log(this.freshStart);
 	this.componentJs      = '';
 	this.componentJsName  = '';
 
-
-
+	this.sockConfigPath = '';
+	this.sockConfig = '';
+	
 	//this.sockConfigPath = this.projectRoot + '/spidersock.json';
 	//this.sockConfig = require(this.sockConfigPath);
 
@@ -179,9 +181,6 @@ Create.prototype = {
 	 * -----------------------------------------------------------------------------*/
 
 		init : function(){
-			"use strict";
-
-		//console.log(freshStart);
 			var _this = this;
 
 			inquirer.prompt( this.prompts, function (answers) {
@@ -194,8 +193,30 @@ Create.prototype = {
 					this.componentJs      = answers.componentJs;
 					this.componentJsName  = answers.componentJsName;
 
+					/* this should return a promise, so async doesn't hit before containing directory is there */
+					this.definePathsAndConfigs();
 
-					this.setPaths();
+
+					async.parallel(
+						[ this.createDirs(),
+						  this.copyTemplates(),
+						  this.createSpiderJson(),
+						  this.createPackageJson(),
+						  this.createBowerJson(),
+						  this.generateScssControllers(),
+						  this.generateJsModule(),
+						  this.generatePhpClass(),
+						  this.updateSpidersockJson(),
+						  this.includeScss(),
+						  this.installDependencies()
+						], function (err) {
+							if (err) {
+								throw err; //Or pass it on to an outer callback, log it or whatever suits your needs
+							}
+							console.log('Both a and b are saved now');
+						}
+					);
+
 				}.bind(this)
 			);
 		},
@@ -209,28 +230,318 @@ Create.prototype = {
 
 
 
+	/**-----------------------------------------------------------------------------
+	 * definePathsAndConfigs
+	 * -----------------------------------------------------------------------------
+	 * sets and caches all required paths
+	 *
+	 * @private
+	 * @this      object        Main Object
+	 * @return    void
+	 * -----------------------------------------------------------------------------*/
+
+		definePathsAndConfigs : function(){
+			this.sockConfigPath = Vars.projectRoot + '/spidersock.json';
+
+			/* @TODO check if file exists otherwise suggest initiating project */
+			this.sockConfig = require(this.sockConfigPath);
+
+			this.componentsBasePath = './' + ( this.sockConfig['installer-path'] || 'components/' );
+			this.componentPath = this.componentType + 's/' + this.componentGroup + '/' + this.componentSlug;
+		/* @TODO check if path exists, if not prompt to create it */
+			this.componentRoot = this.componentsBasePath + this.componentPath + '/';
+			/* */
+			this.changeWorkingDir();
+		},
+
+	/**-----------------------------------------------------------------------------
+	 * ENDOF: definePathsAndConfigs
+	 * -----------------------------------------------------------------------------*/
+
+
+
+
+	/**-----------------------------------------------------------------------------
+	 * changeWorkingDir
+	 * -----------------------------------------------------------------------------
+	 * changes working directory to component's storage dir
+	 *
+	 * @private
+	 * @this      object        Main Object
+	 * @return    void
+	 * -----------------------------------------------------------------------------*/
+
+		changeWorkingDir : function(){
+
+	},
+
+	/**-----------------------------------------------------------------------------
+	 * ENDOF: changeWorkingDir
+	 * -----------------------------------------------------------------------------*/
+
+
+
+
+
+
+
+	/**-----------------------------------------------------------------------------
+	 * createDirs
+	 * -----------------------------------------------------------------------------
+	 * Create required folder structure
+	 *
+	 * @private
+	 * @this      object        Main Object
+	 * @return    void
+	 * -----------------------------------------------------------------------------*/
+
+		createDirs : function(){
+			var _this = this;
+
+			/* @TODO check if path exists, if not prompt to create it */
+			try {
+				process.chdir(this.componentsBasePath);
+				mkdirp(
+					_this.componentPath, function (err) {
+						if (err){ console.error(err); }
+						process.chdir(_this.componentPath);
+						fs.mkdir('theme', '0755');
+						fs.mkdir('core', '0755');
+						fs.mkdir('core/lib', '0755');
+
+					}
+				);
+			}
+			catch (err) {
+				console.log('could not change current directory to components storage. ' + err);
+			}
+		},
+
+	/**-----------------------------------------------------------------------------
+	 * ENDOF: createDirs
+	 * -----------------------------------------------------------------------------*/
+
+
+
+
+
+
+
 /**-----------------------------------------------------------------------------
- * setPaths
+ * createSpiderJson
  * -----------------------------------------------------------------------------
- * sets and caches all required paths
+ * Generates component config file: spider.json
  *
  * @private
  * @this      object        Main Object
  * @return    void
  * -----------------------------------------------------------------------------*/
 
-	setPaths : function(){
-		"use strict";
+	createSpiderJson : function(){
 
-		this.componentPath = this.componentType + 's/' + this.componentGroup + '/' + this.componentSlug;
-		//this.componentRoot = './' + ( this.sockConfig['installer-path'] || 'components/' ) + this.componentPath + '/';
+	},
 
-		console.log(this.componentPath);
+/**-----------------------------------------------------------------------------
+ * ENDOF: createSpiderJson
+ * -----------------------------------------------------------------------------*/
+
+
+
+
+
+
+/**-----------------------------------------------------------------------------
+ * copyTemplates
+ * -----------------------------------------------------------------------------
+ * Copies over all templates that don;t have to be changed
+ *
+ * @private
+ * @this      object        Main Object
+ * @return    void
+ * -----------------------------------------------------------------------------*/
+
+	copyTemplates : function(){
+
+	},
+
+/**-----------------------------------------------------------------------------
+ * ENDOF: copyTemplates
+ * -----------------------------------------------------------------------------*/
+
+
+
+
+
+	/**-----------------------------------------------------------------------------
+	 * createPackageJson
+	 * -----------------------------------------------------------------------------
+	 * creates package.json
+	 *
+	 * @private
+	 * @this      object        Main Object
+	 * @return    void
+	 * -----------------------------------------------------------------------------*/
+
+	createPackageJson : function(){
+
+	},
+
+	/**-----------------------------------------------------------------------------
+	 * ENDOF: createPackageJson
+	 * -----------------------------------------------------------------------------*/
+
+
+
+
+/**-----------------------------------------------------------------------------
+ * createBowerJson
+ * -----------------------------------------------------------------------------
+ * creates Bower config file, to be used if any external dependencies are present
+ *
+ * @private
+ * @this      object        Main Object
+ * @return    void
+ * -----------------------------------------------------------------------------*/
+
+	createBowerJson : function(){
+
+	},
+
+/**-----------------------------------------------------------------------------
+ * ENDOF: createBowerJson
+ * -----------------------------------------------------------------------------*/
+
+
+
+
+
+/**-----------------------------------------------------------------------------
+ * generateScssControllers
+ * -----------------------------------------------------------------------------
+ * Generates Component's SCSS structure
+ *
+ * @private
+ * @this      object        Main Object
+ * @return    void
+ * -----------------------------------------------------------------------------*/
+
+	generateScssControllers : function(){
+
+	},
+
+/**-----------------------------------------------------------------------------
+ * ENDOF: generateScssControllers
+ * -----------------------------------------------------------------------------*/
+
+
+
+
+	/**-----------------------------------------------------------------------------
+	 * generateJsModule
+	 * -----------------------------------------------------------------------------
+	 * Generates JS Module if required
+	 *
+	 * @private
+	 * @this      object        Main Object
+	 * @return    void
+	 * -----------------------------------------------------------------------------*/
+
+	generateJsModule : function(){
+
+	},
+
+	/**-----------------------------------------------------------------------------
+	 * ENDOF: generateJsModule
+	 * -----------------------------------------------------------------------------*/
+
+
+
+
+
+/**-----------------------------------------------------------------------------
+ * generatePhpClass
+ * -----------------------------------------------------------------------------
+ * Generates PHP generator class if required
+ *
+ * @private
+ * @this      object        Main Object
+ * @return    void
+ * -----------------------------------------------------------------------------*/
+
+	generatePhpClass : function(){
+
+	},
+
+/**-----------------------------------------------------------------------------
+ * ENDOF: generatePhpClass
+ * -----------------------------------------------------------------------------*/
+
+
+
+
+
+/**-----------------------------------------------------------------------------
+ * updateSpidersockJson
+ * -----------------------------------------------------------------------------
+ * Updates project's spidersock.json with current component
+ *
+ * @private
+ * @this      object        Main Object
+ * @return    void
+ * -----------------------------------------------------------------------------*/
+
+	updateSpidersockJson : function(){
+
+	},
+
+/**-----------------------------------------------------------------------------
+ * ENDOF: updateSpidersockJson
+ * -----------------------------------------------------------------------------*/
+
+
+
+
+
+/**-----------------------------------------------------------------------------
+ * includeScss
+ * -----------------------------------------------------------------------------
+ * Includes Project's SCSS controllers with correct includes
+ *
+ * @private
+ * @this      object        Main Object
+ * @return    void
+ * -----------------------------------------------------------------------------*/
+
+	includeScss : function(){
+
+	},
+
+/**-----------------------------------------------------------------------------
+ * ENDOF: includeScss
+ * -----------------------------------------------------------------------------*/
+
+
+
+
+
+/**-----------------------------------------------------------------------------
+ * installDependencies
+ * -----------------------------------------------------------------------------
+ * Installs dependencies if present
+ *
+ * @private
+ * @this      object        Main Object
+ * @return    void
+ * -----------------------------------------------------------------------------*/
+
+	installDependencies : function(){
+
 	}
 
 /**-----------------------------------------------------------------------------
- * ENDOF: setPaths
+ * ENDOF: installDependencies
  * -----------------------------------------------------------------------------*/
+
 
 
 };
@@ -238,8 +549,4 @@ Create.prototype = {
 
 
 /* seems hacky, read up and ask people what's the best way to do this */
-module.exports = function(freshStart){
-	"use strict";
-
-	return new Create(freshStart);
-};
+module.exports = new Create();
