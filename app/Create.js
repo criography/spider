@@ -171,6 +171,24 @@ var Create = function Create() {
 
 Create.prototype = {
 
+
+	h1 : function(callback){
+		setTimeout(
+			function () {
+				console.log(1);
+				callback();
+			}, 1000
+		);
+	},
+	h2: function(callback){
+		setTimeout(
+			function () {
+				console.log(2);
+				callback();
+			}, 2000
+		);
+	},
+
 	/**-----------------------------------------------------------------------------
 	 * init
 	 * -----------------------------------------------------------------------------
@@ -184,38 +202,71 @@ Create.prototype = {
 			var _this = this;
 
 			inquirer.prompt( this.prompts, function (answers) {
-					this.componentName    = answers.componentName;
-					this.componentSlug    = sanitize(answers.componentSlug.replace(/\s+/g, '-'));
-					this.componentGroup   = answers.componentGroup;
-					this.componentType    = answers.componentType;
-					this.componentDeps    = answers.componentDeps;
-					this.componentPhp     = answers.componentPhp;
-					this.componentJs      = answers.componentJs;
-					this.componentJsName  = answers.componentJsName;
-
-					/* this should return a promise, so async doesn't hit before containing directory is there */
-					this.definePathsAndConfigs();
+				_this.componentName    = answers.componentName;
+				_this.componentSlug    = sanitize(answers.componentSlug.replace(/\s+/g, '-'));
+				_this.componentGroup   = answers.componentGroup;
+				_this.componentType    = answers.componentType;
+				_this.componentDeps    = answers.componentDeps;
+				_this.componentPhp     = answers.componentPhp;
+				_this.componentJs      = answers.componentJs;
+				_this.componentJsName  = answers.componentJsName;
 
 
-					async.parallel(
-						[ this.createDirs(),
-						  this.copyTemplates(),
-						  this.createSpiderJson(),
-						  this.createPackageJson(),
-						  this.createBowerJson(),
-						  this.generateScssControllers(),
-						  this.generateJsModule(),
-						  this.generatePhpClass(),
-						  this.updateSpidersockJson(),
-						  this.includeScss(),
-						  this.installDependencies()
-						], function (err) {
-							if (err) {
-								throw err; //Or pass it on to an outer callback, log it or whatever suits your needs
+				async.series([
+					function (callback) {
+						_this.definePathsAndConfigs(callback);
+					},
+					
+					function (callback) {
+						_this.createDirs(callback);
+					},
+					 
+					function(callback){
+						async.parallel([
+							function (callback) {
+								_this.copyTemplates(callback);
+							},
+
+							function (callback) {
+								_this.createSpiderJson(callback);
+							},
+
+							function (callback) {
+								_this.createPackageJson(callback);
+							},
+
+							function (callback) {
+								_this.createBowerJson(callback);
+							},
+
+							function (callback) {
+								_this.generateScssControllers(callback);
+							},
+
+							function (callback) {
+								_this.generateJsModule(callback);
+							},
+
+							function (callback) {
+								_this.generatePhpClass(callback);
+							},
+
+							function (callback) {
+								_this.updateSpidersockJson(callback);
+							},
+
+							function (callback) {
+								_this.includeScss(callback);
+							},
+
+							function (callback) {
+								_this.installDependencies(callback);
 							}
-							console.log('Both a and b are saved now');
-						}
-					);
+								
+						]);
+					}
+				]);
+
 
 				}.bind(this)
 			);
@@ -236,11 +287,12 @@ Create.prototype = {
 	 * sets and caches all required paths
 	 *
 	 * @private
-	 * @this      object        Main Object
+	 * @this      object                  Main Object
+	 * @param     callback    function    Async callback
 	 * @return    void
 	 * -----------------------------------------------------------------------------*/
 
-		definePathsAndConfigs : function(){
+		definePathsAndConfigs : function(callback){
 			this.sockConfigPath = Vars.projectRoot + '/spidersock.json';
 
 			/* @TODO check if file exists otherwise suggest initiating project */
@@ -250,8 +302,8 @@ Create.prototype = {
 			this.componentPath = this.componentType + 's/' + this.componentGroup + '/' + this.componentSlug;
 		/* @TODO check if path exists, if not prompt to create it */
 			this.componentRoot = this.componentsBasePath + this.componentPath + '/';
-			/* */
-			this.changeWorkingDir();
+
+			callback();
 		},
 
 	/**-----------------------------------------------------------------------------
@@ -291,30 +343,60 @@ Create.prototype = {
 	 * Create required folder structure
 	 *
 	 * @private
-	 * @this      object        Main Object
+	 * @this      object                  Main Object
+	 * @param     callback    function    Async callback
 	 * @return    void
 	 * -----------------------------------------------------------------------------*/
 
-		createDirs : function(){
+		createDirs : function(callback){
 			var _this = this;
 
-			/* @TODO check if path exists, if not prompt to create it */
-			try {
-				process.chdir(this.componentsBasePath);
-				mkdirp(
-					_this.componentPath, function (err) {
-						if (err){ console.error(err); }
-						process.chdir(_this.componentPath);
-						fs.mkdir('theme', '0755');
-						fs.mkdir('core', '0755');
-						fs.mkdir('core/lib', '0755');
 
+		fs.exists(
+				_this.componentsBasePath, function (exists) {
+
+					if(exists){
+
+						/* create directory structure to the new component's root */
+						mkdirp(
+							_this.componentsBasePath + _this.componentPath,
+							function (err) {
+								if (err) {
+									console.error(err);
+								}
+
+								/* change current path to new component root */
+								process.chdir(_this.componentsBasePath + _this.componentPath);
+
+								/* create new component directory structure */
+								fs.mkdir('theme', '0755');
+								mkdirp(
+									'core/lib',
+									function(error){
+										callback();
+									}
+								);
+
+							}
+						);
+
+					/* prompt to create or create automatically ? */
+					}else{
+						console.log('Path: ' + _this.componentsBasePath + ' doesn\'t seem to exist');
+						console.log('Path: ' + _this.componentsBasePath + ' doesn\'t seem to exist');
+
+						inquirer.prompt(
+							_this.prompts, function (answers) {
+
+								/* rerun this function */
+								_this.createDirs();
+
+							}.bind(this)
+						);
 					}
-				);
-			}
-			catch (err) {
-				console.log('could not change current directory to components storage. ' + err);
-			}
+				}
+			);
+
 		},
 
 	/**-----------------------------------------------------------------------------
@@ -333,11 +415,12 @@ Create.prototype = {
  * Generates component config file: spider.json
  *
  * @private
- * @this      object        Main Object
+ * @this      object                  Main Object
+ * @param     callback    function    Async callback
  * @return    void
  * -----------------------------------------------------------------------------*/
 
-	createSpiderJson : function(){
+	createSpiderJson : function(callback){
 
 	},
 
@@ -356,11 +439,12 @@ Create.prototype = {
  * Copies over all templates that don;t have to be changed
  *
  * @private
- * @this      object        Main Object
+ * @this      object                  Main Object
+ * @param     callback    function    Async callback
  * @return    void
  * -----------------------------------------------------------------------------*/
 
-	copyTemplates : function(){
+	copyTemplates : function (callback) {
 
 	},
 
@@ -378,11 +462,12 @@ Create.prototype = {
 	 * creates package.json
 	 *
 	 * @private
-	 * @this      object        Main Object
+	 * @this      object                  Main Object
+	 * @param     callback    function    Async callback
 	 * @return    void
 	 * -----------------------------------------------------------------------------*/
 
-	createPackageJson : function(){
+	createPackageJson : function (callback) {
 
 	},
 
@@ -399,11 +484,12 @@ Create.prototype = {
  * creates Bower config file, to be used if any external dependencies are present
  *
  * @private
- * @this      object        Main Object
+ * @this      object                  Main Object
+ * @param     callback    function    Async callback
  * @return    void
  * -----------------------------------------------------------------------------*/
 
-	createBowerJson : function(){
+	createBowerJson : function (callback) {
 
 	},
 
@@ -421,11 +507,12 @@ Create.prototype = {
  * Generates Component's SCSS structure
  *
  * @private
- * @this      object        Main Object
+ * @this      object                  Main Object
+ * @param     callback    function    Async callback
  * @return    void
  * -----------------------------------------------------------------------------*/
 
-	generateScssControllers : function(){
+	generateScssControllers : function (callback) {
 
 	},
 
@@ -442,11 +529,12 @@ Create.prototype = {
 	 * Generates JS Module if required
 	 *
 	 * @private
-	 * @this      object        Main Object
+	 * @this      object                  Main Object
+	 * @param     callback    function    Async callback
 	 * @return    void
 	 * -----------------------------------------------------------------------------*/
 
-	generateJsModule : function(){
+	generateJsModule : function (callback) {
 
 	},
 
@@ -464,11 +552,12 @@ Create.prototype = {
  * Generates PHP generator class if required
  *
  * @private
- * @this      object        Main Object
+ * @this      object                  Main Object
+ * @param     callback    function    Async callback
  * @return    void
  * -----------------------------------------------------------------------------*/
 
-	generatePhpClass : function(){
+	generatePhpClass : function (callback) {
 
 	},
 
@@ -486,11 +575,12 @@ Create.prototype = {
  * Updates project's spidersock.json with current component
  *
  * @private
- * @this      object        Main Object
+ * @this      object                  Main Object
+ * @param     callback    function    Async callback
  * @return    void
  * -----------------------------------------------------------------------------*/
 
-	updateSpidersockJson : function(){
+	updateSpidersockJson : function (callback) {
 
 	},
 
@@ -508,11 +598,12 @@ Create.prototype = {
  * Includes Project's SCSS controllers with correct includes
  *
  * @private
- * @this      object        Main Object
+ * @this      object                  Main Object
+ * @param     callback    function    Async callback
  * @return    void
  * -----------------------------------------------------------------------------*/
 
-	includeScss : function(){
+	includeScss : function (callback) {
 
 	},
 
@@ -530,11 +621,12 @@ Create.prototype = {
  * Installs dependencies if present
  *
  * @private
- * @this      object        Main Object
+ * @this      object                  Main Object
+ * @param     callback    function    Async callback
  * @return    void
  * -----------------------------------------------------------------------------*/
 
-	installDependencies : function(){
+	installDependencies : function (callback) {
 
 	}
 
