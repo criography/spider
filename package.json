@@ -39,6 +39,7 @@
     "minimist": "~0.0.8",
     "mkdirp": "^0.5.0",
     "mustache": "^0.8.2",
+    "ncp": "^1.0.1",
     "prompt": "^0.2.14",
     "sanitize-filename": "^1.1.1",
     "underscore": "^1.7.0",

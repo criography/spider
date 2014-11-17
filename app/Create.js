@@ -9,38 +9,52 @@ var sanitize = require('sanitize-filename');
 var async = require('async');
 var fs = require('fs');
 var mkdirp = require('mkdirp');
+var ncp = require('ncp');
 
 var Vars = require('./Vars');
+var Log = require('./helpers/Log');
 
 
 
 
 var Create = function Create() {
 
-	/* base path to where all components are */
-	this.componentsBasePath = '';
+	this.paths            = {
+		storage     : '',           /* base path to where all components are */
+		component   : {
+			relative : '',            /* composite path from components root to the current component's location */
+			absolute : ''             /* full path from cwd to the current component's location */
+		},
+		config      : {
+			sock    : ''              /* project's spiderSock config */
+		}
+	};
 
-	/* composite path from components root to the current component's location */
-	this.componentPath = '';
-
-	/* full path from cwd to the current component's location */
-	this.componentRoot = '';
 
 	/* inquirer placehoders for answers */
-	this.componentName    = '';
-	this.componentSlug    = '';
-	this.componentGroup   = '';
-	this.componentType    = '';
-	this.componentDeps    = '';
-	this.componentPhp     = '';
-	this.componentJs      = '';
-	this.componentJsName  = '';
-
-	this.sockConfigPath = '';
-	this.sockConfig = '';
+	this.component = {
+		name    : '',
+		slug    : '',
+		group   : '',
+		type    : '',
+		deps    : '',
+		php     : '',
+		phpName : '',
+		js      : '',
+		jsName  : ''
+	};
 	
-	//this.sockConfigPath = this.projectRoot + '/spidersock.json';
-	//this.sockConfig = require(this.sockConfigPath);
+
+
+	/* config data */
+	this.config = {
+		sock  : ''                  /* project's spidersock.json */
+	};
+
+
+	
+	//this.paths.config.sock = this.projectRoot + '/spidersock.json';
+	//this.config.sock = require(this.paths.config.sock);
 
 
 
@@ -172,22 +186,6 @@ var Create = function Create() {
 Create.prototype = {
 
 
-	h1 : function(callback){
-		setTimeout(
-			function () {
-				console.log(1);
-				callback();
-			}, 1000
-		);
-	},
-	h2: function(callback){
-		setTimeout(
-			function () {
-				console.log(2);
-				callback();
-			}, 2000
-		);
-	},
 
 	/**-----------------------------------------------------------------------------
 	 * init
@@ -202,14 +200,14 @@ Create.prototype = {
 			var _this = this;
 
 			inquirer.prompt( this.prompts, function (answers) {
-				_this.componentName    = answers.componentName;
-				_this.componentSlug    = sanitize(answers.componentSlug.replace(/\s+/g, '-'));
-				_this.componentGroup   = answers.componentGroup;
-				_this.componentType    = answers.componentType;
-				_this.componentDeps    = answers.componentDeps;
-				_this.componentPhp     = answers.componentPhp;
-				_this.componentJs      = answers.componentJs;
-				_this.componentJsName  = answers.componentJsName;
+				_this.component.name    = answers.componentName;
+				_this.component.slug    = sanitize(answers.componentSlug.replace(/\s+/g, '-'));
+				_this.component.group   = answers.componentGroup;
+				_this.component.type    = answers.componentType;
+				_this.component.deps    = answers.componentDeps;
+				_this.component.php     = answers.componentPhp;
+				_this.component.js      = answers.componentJs;
+				_this.component.jsName  = answers.componentJsName;
 
 
 				async.series([
@@ -293,16 +291,18 @@ Create.prototype = {
 	 * -----------------------------------------------------------------------------*/
 
 		definePathsAndConfigs : function(callback){
-			this.sockConfigPath = Vars.projectRoot + '/spidersock.json';
+			this.paths.config.sock = Vars.projectRoot + '/spidersock.json';
 
 			/* @TODO check if file exists otherwise suggest initiating project */
-			this.sockConfig = require(this.sockConfigPath);
+			this.config.sock = require(this.paths.config.sock);
 
-			this.componentsBasePath = './' + ( this.sockConfig['installer-path'] || 'components/' );
-			this.componentPath = this.componentType + 's/' + this.componentGroup + '/' + this.componentSlug;
+			this.paths.storage = './' + ( this.config.sock['installer-path'] || 'components/' );
+			this.paths.component.relative = this.component.type + 's/' + this.component.group + '/' + this.componentSlug;
+
 		/* @TODO check if path exists, if not prompt to create it */
-			this.componentRoot = this.componentsBasePath + this.componentPath + '/';
+			this.paths.component.absolute = this.paths.storage + this.paths.component.relative + '/';
 
+			Log.status('Resolved all necessary paths');
 			callback();
 		},
 
@@ -341,7 +341,8 @@ Create.prototype = {
 	 * createDirs
 	 * -----------------------------------------------------------------------------
 	 * Create required folder structure
-	 *
+	 * @TODO clean this shit up.
+	 * @TODO Perhaps simply copy existing structure over, rather than create everything from scratch?
 	 * @private
 	 * @this      object                  Main Object
 	 * @param     callback    function    Async callback
@@ -353,26 +354,28 @@ Create.prototype = {
 
 
 		fs.exists(
-				_this.componentsBasePath, function (exists) {
+				_this.paths.storage, function (exists) {
 
 					if(exists){
 
 						/* create directory structure to the new component's root */
 						mkdirp(
-							_this.componentsBasePath + _this.componentPath,
+							_this.paths.storage + _this.paths.component.relative,
 							function (err) {
 								if (err) {
 									console.error(err);
 								}
 
 								/* change current path to new component root */
-								process.chdir(_this.componentsBasePath + _this.componentPath);
+								process.chdir(_this.paths.storage + _this.paths.component.relative);
 
 								/* create new component directory structure */
 								fs.mkdir('theme', '0755');
 								mkdirp(
 									'core/lib',
 									function(error){
+										/* @TODO: check for error */
+										Log.status('Created directory structure');
 										callback();
 									}
 								);
@@ -382,8 +385,7 @@ Create.prototype = {
 
 					/* prompt to create or create automatically ? */
 					}else{
-						console.log('Path: ' + _this.componentsBasePath + ' doesn\'t seem to exist');
-						console.log('Path: ' + _this.componentsBasePath + ' doesn\'t seem to exist');
+						console.log('Path: ' + _this.paths.storage + ' doesn\'t seem to exist');
 
 						inquirer.prompt(
 							_this.prompts, function (answers) {
@@ -410,30 +412,6 @@ Create.prototype = {
 
 
 /**-----------------------------------------------------------------------------
- * createSpiderJson
- * -----------------------------------------------------------------------------
- * Generates component config file: spider.json
- *
- * @private
- * @this      object                  Main Object
- * @param     callback    function    Async callback
- * @return    void
- * -----------------------------------------------------------------------------*/
-
-	createSpiderJson : function(callback){
-
-	},
-
-/**-----------------------------------------------------------------------------
- * ENDOF: createSpiderJson
- * -----------------------------------------------------------------------------*/
-
-
-
-
-
-
-/**-----------------------------------------------------------------------------
  * copyTemplates
  * -----------------------------------------------------------------------------
  * Copies over all templates that don;t have to be changed
@@ -446,11 +424,48 @@ Create.prototype = {
 
 	copyTemplates : function (callback) {
 
+		ncp(
+			Vars.templatesPath + '/static/', './', function (err) {
+				if (err) {
+					return console.error(err);
+				}
+
+				Log.status('Created static files');
+				callback();
+			}
+		);
 	},
 
 /**-----------------------------------------------------------------------------
  * ENDOF: copyTemplates
  * -----------------------------------------------------------------------------*/
+
+
+
+
+
+
+	/**-----------------------------------------------------------------------------
+	 * createSpiderJson
+	 * -----------------------------------------------------------------------------
+	 * Generates component config file: spider.json
+	 *
+	 * @private
+	 * @this      object                  Main Object
+	 * @param     callback    function    Async callback
+	 * @return    void
+	 * -----------------------------------------------------------------------------*/
+
+	createSpiderJson : function (callback) {
+
+	},
+
+	/**-----------------------------------------------------------------------------
+	 * ENDOF: createSpiderJson
+	 * -----------------------------------------------------------------------------*/
+
+
+
 
 
 
