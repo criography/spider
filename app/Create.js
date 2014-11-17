@@ -3,21 +3,25 @@
 
 
 // Private
-var inquirer = require('inquirer');
-var chalk = require('chalk');
-var sanitize = require('sanitize-filename');
-var async = require('async');
-var fs = require('fs');
-var mkdirp = require('mkdirp');
-var ncp = require('ncp');
+var inquirer  = require('inquirer');
+var sanitize  = require('sanitize-filename');
+var async     = require('async');
+var fs        = require('fs');
+var path      = require('path');
+var mkdirp    = require('mkdirp');
+var ncp       = require('ncp');
 
-var Vars = require('./Vars');
-var Log = require('./helpers/Log');
+var Vars      = require('./Vars');
+var Log       = require('./helpers/Log');
+var File      = require('./helpers/File');
+
+
 
 
 
 
 var Create = function Create() {
+
 
 	this.paths            = {
 		storage     : '',           /* base path to where all components are */
@@ -31,13 +35,13 @@ var Create = function Create() {
 	};
 
 
-	/* inquirer placehoders for answers */
+	/* all component data, gathered from and composed based on prompt */
 	this.component = {
 		name    : '',
 		slug    : '',
 		group   : '',
 		type    : '',
-		deps    : '',
+		deps    : [],
 		php     : '',
 		phpName : '',
 		js      : '',
@@ -218,12 +222,13 @@ Create.prototype = {
 					function (callback) {
 						_this.createDirs(callback);
 					},
-					 
+
+					function (callback) {
+						_this.copyTemplates(callback);
+					},
+
 					function(callback){
 						async.parallel([
-							function (callback) {
-								_this.copyTemplates(callback);
-							},
 
 							function (callback) {
 								_this.createSpiderJson(callback);
@@ -291,13 +296,13 @@ Create.prototype = {
 	 * -----------------------------------------------------------------------------*/
 
 		definePathsAndConfigs : function(callback){
-			this.paths.config.sock = Vars.projectRoot + '/spidersock.json';
+			this.paths.config.sock = Vars.paths.projectRoot + '/spidersock.json';
 
 			/* @TODO check if file exists otherwise suggest initiating project */
 			this.config.sock = require(this.paths.config.sock);
 
 			this.paths.storage = './' + ( this.config.sock['installer-path'] || 'components/' );
-			this.paths.component.relative = this.component.type + 's/' + this.component.group + '/' + this.componentSlug;
+			this.paths.component.relative = this.component.type + 's/' + this.component.group + '/' + this.component.slug;
 
 		/* @TODO check if path exists, if not prompt to create it */
 			this.paths.component.absolute = this.paths.storage + this.paths.component.relative + '/';
@@ -342,7 +347,6 @@ Create.prototype = {
 	 * -----------------------------------------------------------------------------
 	 * Create required folder structure
 	 * @TODO clean this shit up.
-	 * @TODO Perhaps simply copy existing structure over, rather than create everything from scratch?
 	 * @private
 	 * @this      object                  Main Object
 	 * @param     callback    function    Async callback
@@ -369,16 +373,8 @@ Create.prototype = {
 								/* change current path to new component root */
 								process.chdir(_this.paths.storage + _this.paths.component.relative);
 
-								/* create new component directory structure */
-								fs.mkdir('theme', '0755');
-								mkdirp(
-									'core/lib',
-									function(error){
-										/* @TODO: check for error */
-										Log.status('Created directory structure');
-										callback();
-									}
-								);
+								Log.status('Created component path');
+								callback();
 
 							}
 						);
@@ -425,11 +421,12 @@ Create.prototype = {
 	copyTemplates : function (callback) {
 
 		ncp(
-			Vars.templatesPath + '/static/', './', function (err) {
+			Vars.paths.templates + '/static/', './', function (err) {
 				if (err) {
 					return console.error(err);
 				}
 
+				Log.status('Created component directory structure');
 				Log.status('Created static files');
 				callback();
 			}
@@ -456,7 +453,15 @@ Create.prototype = {
 	 * @return    void
 	 * -----------------------------------------------------------------------------*/
 
-	createSpiderJson : function (callback) {
+	mustachefyFiles : function (callback) {
+		var _this = this;
+		/* @TODO: figure out a way to rename files */
+		/* @TODO: wrap into a larger async */
+		File.mustacheReplacer('spider.json', _this.component, callback );
+		File.mustacheReplacer('bower.json', _this.component, callback );
+		File.mustacheReplacer('_component.scss', _this.component, callback );
+		File.mustacheReplacer('_controller.scss', _this.component, callback );
+		File.mustacheReplacer('_theme.scss', _this.component, callback );
 
 	},
 

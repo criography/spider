@@ -12,11 +12,14 @@ var path = require('path');
 var Vars = function () {
 	"use strict";
 
-	/* full OS path to the templates dir of component */
-	this.templatesPath     = '';
 
-	/* project root. Should it be cached? */
-	this.projectRoot = process.cwd();
+	this.paths ={
+		templates   : '',                 /* full OS path to the templates dir of component */
+		projectRoot : process.cwd()       /* project root. Should it be cached? */
+	};
+
+
+
 
 	/* marker string placed in controller files to define injection places */
 	/* @TODO separate imports to separate files, which will remove the need for it */
@@ -73,7 +76,7 @@ Vars.prototype = {
 	setVars : function () {
 		"use strict";
 
-		this.templatesPath            = __dirname + '/templates/';
+		this.paths.templates            = __dirname + '/templates/';
 
 		this.projectControllerMarker  = '/* --spiders:{{type}}s-- */';
 	}
