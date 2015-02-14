@@ -18,32 +18,38 @@ module.exports =  {
 	 * -----------------------------------------------------------------------------
 	 * reads given file, replaces all mustache tags and saves the output to specified location
 	 *
-	 * @this      {object}                    Main Object
-	 * @param     {string}    filename        file to be processed
-	 * @param     {object}    needles         object containing all available strings to be used as replacers
-	 * @param     {function}  callback        callback to be passed back to async
-	 * @param     {string}    destinationDir  path to where the file should go, starting from the component root.
+	 * @this      {object}                            Main Object
+	 * @param     {string}          sourceDir         source directory for the file.
+	 * @param     {string}          sourceName        filename to be processed (can be subpath)
+	 * @param     {string}          destinationDir    path to where the file should go, starting from the component root.
+	 * @param     {string|null}     destinationName   new filename to be used when saving (can be subpath).
+	 *                                                Defaults to sourceName.
+	 * @param     {object}          needles           object containing all available strings to be used as replacers
+	 * @param     {function}        callback          callback to be passed back to async
+	 *
 	 * @return    void
 	 * -----------------------------------------------------------------------------*/
 
-		mustacheReplacer : function (filename, needles, callback, destinationDir) {
+		mustacheReplacer : function (sourceDir, sourceName, destinationDir, destinationName, needles, callback) {
 
 			/* if all is set read the file */
-			if (filename && needles && callback) {
+			if (needles && callback) {
+				destinationName = destinationName || sourceName;
+
 				fs.readFile(
-					Vars.paths.templates + '/' + filename, {encoding : 'utf8'}, function (err, data) {
+					sourceDir + sourceName, {encoding : 'utf8'}, function (err, data) {
 						if (err) {
 							throw err;
 						}
 
-						/* process data and save it to a file */
+
 						fs.writeFile(
-							'./' + (destinationDir || '') + filename, mustache.render(data, needles), function (err) {
+							'./' + (destinationDir || '') + destinationName, mustache.render(data, needles), function (err) {
 								if (err) {
 									throw err;
 								}
 
-								Log.status('Created ' + filename);
+								Log.status('Created ' + destinationName);
 								callback();
 							}
 						);

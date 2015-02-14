@@ -15,41 +15,42 @@ log.runner = 'spider';
 
 switch (argv._[0]){
 
-	/* create new Spider as part of existing project */
+	/* add an existing Spider as part of existing project */
 	case 'add':
 	case 'a':
-		Create;
+		//Add;
 		break;
 
 
 	/* create new Spider as part of existing project */
-	case 'clone':
+	case 'create':
 	case 'c':
-		//Clone;
-		break;
-
-
-	/* create new Spider repo and project */
-	case 'init':
-	case 'new':
-	case 'i':
-	case 'n':
 		Create;
 		break;
 
 
+	/* Init a new Spider in it's own repo and directory */
+	case 'init':
+	case 'i':
+		//Init;
+		break;
+
+
+	/* Rename Spider's slug (locations as it was) */
 	case 'rename':
 	case 'r':
 		//Rename;
 		break;
 
 
+	/* Change Spider's location: functional group, scope and slug */
 	case 'move':
 	case 'm':
 		//Move;
 		break;
 
 
+	/* Delete a component from a project*/
 	case 'delete':
 	case 'd':
 		//Delete;
@@ -57,9 +58,14 @@ switch (argv._[0]){
 
 
 	case 'update':
-	case 'pull':
 	case 'u':
-	case 'p':
 		//Update;
 		break;
+
+
+
+	/* Change Spider's location: functional group, scope and slug */
+  case 'install':
+  	//Install;
+  	break;
 }

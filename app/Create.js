@@ -10,6 +10,7 @@ var fs        = require('fs');
 var path      = require('path');
 var mkdirp    = require('mkdirp');
 var ncp       = require('ncp');
+var readdirSyncRecursive = require('fs-readdir-recursive');
 
 var Vars      = require('./Vars');
 var Log       = require('./helpers/Log');
@@ -24,13 +25,15 @@ var Create = function Create() {
 
 
 	this.paths            = {
-		storage     : '',           /* base path to where all components are */
+		storage     : '',           /* base path to where all components are being stored ('vendors' pretty much) */
+
 		component   : {
-			relative : '',            /* composite path from components root to the current component's location */
-			absolute : ''             /* full path from cwd to the current component's location */
+			relative : '',            /* composite/relative path from components root (storage) to the current component's location */
+			absolute : ''             /* full path from cwd (project root?) to the current component's location */
 		},
+
 		config      : {
-			sock    : ''              /* project's spiderSock config */
+			sock    : ''              /* project's spiderSock config filename */
 		}
 	};
 
@@ -45,14 +48,15 @@ var Create = function Create() {
 		php     : '',
 		phpName : '',
 		js      : '',
-		jsName  : ''
+		jsName  : '',
+		repo    : ''
 	};
 	
 
 
 	/* config data */
 	this.config = {
-		sock  : ''                  /* project's spidersock.json */
+		sock  : ''                  /* project's spidersock.json contents (actual data) */
 	};
 
 
@@ -68,11 +72,11 @@ var Create = function Create() {
 			type     : 'input',
 			name     : 'componentName',
 			validate : function (value) {
-										var pass = value.match(/^[A-Za-z0-9 :-_]{3,}$/);
+										var pass = value.match(/^[A-Za-z0-9 :-_/,\.\[\]\(\)]{3,}$/);
 
-										return pass ? true : "[A-Za-z0-9 :-_]{3,} Learn your RegEx, for crying out loud!";
+										return pass ? true : "[A-Za-z0-9 :-_/,\\.\\[\\]\\(\\)]{3,} Learn your RegEx, for crying out loud!";
 									},
-			message  : 'Gimme thy component\'s name. [A-Za-z0-9 :-_]{3,}'
+			message  : 'New component\'s name. [A-Za-z0-9 :-_/,\\.\\[\\]\\(\\)]{3,}'
 		},
 
 		{
@@ -83,7 +87,7 @@ var Create = function Create() {
 
 										return pass ? true : "[A-Za-z0-9-_]{3,} Learn your RegEx, for crying out loud!";
 									},
-			message  : 'Gimme thy component\'s slug. [A-Za-z0-9-_]{3,}'
+			message  : 'New component\'s slug. [A-Za-z0-9-_]{3,}'
 		},
 
 		{
@@ -94,7 +98,7 @@ var Create = function Create() {
 
 										return pass ? true : "[a-z0-9-_]{3,} Learn your RegEx, for crying out loud!";
 									},
-			message  : 'Gimme thy component\'s functional group. [a-z0-9-_]{3,}'
+			message  : 'New component\'s functional group. [a-z0-9-_]{3,}'
 		},
 
 		{
@@ -129,7 +133,7 @@ var Create = function Create() {
 			type       : 'input',
 			required   : true,
 			pattern    : /^[A-Za-z0-9-_]*$/,
-			message: 'OK then, so what\'s the filename of PHP Class?',
+			message: 'OK then, so what\'s the filename of PHP Class? (exclude extension)',
 			default    : function (props) {
 
 				return  'SSK_' + props.componentSlug.replace(/[-_]+/g, ' ').
@@ -139,7 +143,7 @@ var Create = function Create() {
 											return s.charAt(0).toUpperCase() + s.substr(1);
 										}
 									).
-									replace(/\s/g, '_') + '.php';
+									replace(/\s/g, '_');
 			}
 		},
 
@@ -159,7 +163,7 @@ var Create = function Create() {
 			type       : 'input',
 			required   : true,
 			pattern    : /^[A-Za-z0-9-_]*$/,
-			message: 'OK then, so what\'s the filename of JS module?',
+			message: 'OK then, so what\'s the filename of JS module? (exclude extension)',
 			default    : function (props) {
 
 				return  props.componentSlug.replace(/[-_]+/g, ' ').
@@ -169,8 +173,17 @@ var Create = function Create() {
 											return s.charAt(0).toUpperCase() + s.substr(1);
 										}
 									).
-									replace(/\s/g, '_') + '.js';
+									replace(/\s/g, '_');
 			}
+		},
+
+		{
+			type    : 'list',
+			name    : 'createRepo',
+			message : 'Create new repository?',
+			choices : ['nope', 'yep'],
+			default : 'nope'
+
 		}
 
 	];
@@ -210,8 +223,10 @@ Create.prototype = {
 				_this.component.type    = answers.componentType;
 				_this.component.deps    = answers.componentDeps;
 				_this.component.php     = answers.componentPhp;
+				_this.component.phpName = answers.componentPhpName;
 				_this.component.js      = answers.componentJs;
 				_this.component.jsName  = answers.componentJsName;
+				_this.component.repo    = answers.createRepo;
 
 
 				async.series([
@@ -225,17 +240,36 @@ Create.prototype = {
 
 					function (callback) {
 						_this.copyTemplates(callback);
+					}, 
+					
+
+					function(callback) {
+						async.parallel([
+
+							function (callback) {
+								_this.processDynamicTemplates(callback);
+							},
+
+							function (callback) {
+								_this.processOptionalTemplates(callback);
+							}
+
+						],
+
+						function (err) {
+							callback();
+						});
 					},
 
 					function(callback){
 						async.parallel([
 
 							function (callback) {
-								_this.createSpiderJson(callback);
+								_this.renameDynamicTemplates(callback);
 							},
-
+							 /*,
 							function (callback) {
-								_this.createPackageJson(callback);
+								_this.renameDynamicTemplates(callback);
 							},
 
 							function (callback) {
@@ -253,18 +287,18 @@ Create.prototype = {
 							function (callback) {
 								_this.generatePhpClass(callback);
 							},
-
+*/
 							function (callback) {
 								_this.updateSpidersockJson(callback);
-							},
-
+							}
+/*
 							function (callback) {
 								_this.includeScss(callback);
 							},
 
 							function (callback) {
 								_this.installDependencies(callback);
-							}
+							}*/
 								
 						]);
 					}
@@ -296,9 +330,10 @@ Create.prototype = {
 	 * -----------------------------------------------------------------------------*/
 
 		definePathsAndConfigs : function(callback){
+
 			this.paths.config.sock = Vars.paths.projectRoot + '/spidersock.json';
 
-			/* @TODO check if file exists otherwise suggest initiating project */
+			/* @TODO check if file exists and is valid otherwise suggest initiating project (spider project init)*/
 			this.config.sock = require(this.paths.config.sock);
 
 			this.paths.storage = './' + ( this.config.sock['installer-path'] || 'components/' );
@@ -453,15 +488,10 @@ Create.prototype = {
 	 * @return    void
 	 * -----------------------------------------------------------------------------*/
 
-	mustachefyFiles : function (callback) {
+	createSpiderJson : function (callback) {
 		var _this = this;
-		/* @TODO: figure out a way to rename files */
-		/* @TODO: wrap into a larger async */
-		File.mustacheReplacer('spider.json', _this.component, callback );
-		File.mustacheReplacer('bower.json', _this.component, callback );
-		File.mustacheReplacer('_component.scss', _this.component, callback );
-		File.mustacheReplacer('_controller.scss', _this.component, callback );
-		File.mustacheReplacer('_theme.scss', _this.component, callback );
+
+
 
 	},
 
@@ -473,13 +503,12 @@ Create.prototype = {
 
 
 
-
-
-
 	/**-----------------------------------------------------------------------------
-	 * createPackageJson
+	 * processDynamicTemplates
 	 * -----------------------------------------------------------------------------
-	 * creates package.json
+	 * reads all files from 'templates/dynamic' folder,
+	 * replaces all mustache tags
+	 * and saves it to the destination location
 	 *
 	 * @private
 	 * @this      object                  Main Object
@@ -487,12 +516,177 @@ Create.prototype = {
 	 * @return    void
 	 * -----------------------------------------------------------------------------*/
 
-	createPackageJson : function (callback) {
+	processDynamicTemplates : function (callback) {
+		var _this             = this,
+				dynamicTemplates  = readdirSyncRecursive(Vars.paths.templates + 'dynamic/');
+
+
+		if(dynamicTemplates){
+
+			async.map(
+				dynamicTemplates,
+
+				function (filename, callback) {
+					File.mustacheReplacer(
+						Vars.paths.templates + 'dynamic/',
+						filename,
+						_this.paths.absolute,
+						null,
+						_this.component,
+						callback
+					);
+				},
+
+				function(err){
+					if(err){
+						return console.error(err);
+					}
+
+					callback();
+				}
+			);
+
+		}
+
+
 
 	},
 
 	/**-----------------------------------------------------------------------------
-	 * ENDOF: createPackageJson
+	 * ENDOF: processDynamicTemplates
+	 * -----------------------------------------------------------------------------*/
+
+
+
+
+
+
+
+	/**-----------------------------------------------------------------------------
+	 * processOptionalTemplates
+	 * -----------------------------------------------------------------------------
+	 * reads all files from 'templates/dynamic' folder,
+	 * replaces all mustache tags
+	 * and saves it to the destination location
+	 *
+	 * @private
+	 * @this      object                  Main Object
+	 * @param     callback    function    Async callback
+	 * @return    void
+	 * -----------------------------------------------------------------------------*/
+
+	processOptionalTemplates : function (callback) {
+		var _this             = this,
+				dynamicTemplates  = readdirSyncRecursive(Vars.paths.templates + 'optional/');
+
+
+				async.parallel(
+					[
+						function (callback) {
+							if(_this.component.jsName){
+
+								File.mustacheReplacer(
+									Vars.paths.templates + 'optional/',
+									'module.js',
+									_this.paths.absolute,
+									_this.component.jsName + '.js',
+									_this.component,
+									callback
+								);
+
+							}else{
+								callback();
+
+							}
+						},
+
+						function (callback) {
+							if (_this.component.phpName) {
+
+								File.mustacheReplacer(
+									Vars.paths.templates + 'optional/',
+									'generator.php',
+									_this.paths.absolute,
+									_this.component.phpName + '.php',
+									_this.component,
+									callback
+								);
+
+							} else {
+								callback();
+
+							}
+						}
+					],
+
+					function (err) {
+						if (err) {
+							return console.error(err);
+						}
+
+						callback();
+					}
+				);
+
+
+	},
+
+	/**-----------------------------------------------------------------------------
+	 * ENDOF: processOptionalTemplates
+	 * -----------------------------------------------------------------------------*/
+
+
+
+
+
+
+
+
+	/**-----------------------------------------------------------------------------
+	 * renameDynamicTemplates
+	 * -----------------------------------------------------------------------------
+	 * once all dynamic templates are processed and renamed,
+	 * make sure that all names are component specific.
+	 *
+	 * @private
+	 * @this      object                  Main Object
+	 * @param     callback    function    Async callback
+	 * @return    void
+	 * -----------------------------------------------------------------------------*/
+
+	renameDynamicTemplates : function (callback) {
+		var _this   = this,
+				mods  = [
+					{
+						src  : './core/_controller.scss',
+						dest : './core/_' + _this.component.slug + '.scss'
+					},
+					{
+						src  : './theme/_theme.scss',
+						dest : './theme/_' + _this.component.slug + '--theme.scss'
+					}
+				];
+
+
+		async.map(
+			mods,
+
+		  function (file, callback){
+				fs.rename(file.src, file.dest, callback);
+		  },
+
+			function (err) {
+				if (err) {
+					return console.error(err);
+				}
+
+				callback();
+			}
+		);
+	},
+
+	/**-----------------------------------------------------------------------------
+	 * ENDOF: renameDynamicTemplates
 	 * -----------------------------------------------------------------------------*/
 
 
@@ -601,6 +795,26 @@ Create.prototype = {
  * -----------------------------------------------------------------------------*/
 
 	updateSpidersockJson : function (callback) {
+		var _this       = this;
+
+		/* @TODO inject the right repo details or fall back to empty string */
+		_this.config.sock.dependencies[
+			_this.component.type + '/' + _this.component.group + '/' + _this.component.slug
+		] = "{{repo}}";
+
+
+		fs.writeFile(
+			_this.paths.config.sock,
+			JSON.stringify(_this.config.sock, null, "\t"),
+			function (err) {
+				if (err) {
+					return console.error(err);
+				}
+
+				Log.status('Updated project\'s spidersock.json');
+				callback();
+			}
+		);
 
 	},
 
