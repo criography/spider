@@ -56,7 +56,9 @@ var Create = function Create() {
 
 	/* config data */
 	this.config = {
-		sock  : ''                  /* project's spidersock.json contents (actual data) */
+		sock                      : '',                               /* project's spidersock.json contents (actual data) */
+		componentGroupSeparator   : ''     /* separator used in builder config files/controllers for
+		                                                              /* separating component groups, allowing for correct injection of a current component */
 	};
 
 
@@ -290,12 +292,12 @@ Create.prototype = {
 */
 							function (callback) {
 								_this.updateSpidersockJson(callback);
-							}
-/*
-							function (callback) {
-								_this.includeScss(callback);
 							},
 
+							function (callback) {
+								_this.updateScssController(callback);
+							}
+ /*
 							function (callback) {
 								_this.installDependencies(callback);
 							}*/
@@ -341,6 +343,11 @@ Create.prototype = {
 
 		/* @TODO check if path exists, if not prompt to create it */
 			this.paths.component.absolute = this.paths.storage + this.paths.component.relative + '/';
+
+			/* cache current component's controller marker/separator */
+			this.config.componentGroupSeparator = Vars.projectControllerMarker.split('{{type}}').join(this.component.type);
+
+			console.log(this.config.componentGroupSeparator);
 
 			Log.status('Resolved all necessary paths');
 			callback();
@@ -827,7 +834,7 @@ Create.prototype = {
 
 
 /**-----------------------------------------------------------------------------
- * includeScss
+ * updateScssController
  * -----------------------------------------------------------------------------
  * Includes Project's SCSS controllers with correct includes
  *
@@ -837,12 +844,49 @@ Create.prototype = {
  * @return    void
  * -----------------------------------------------------------------------------*/
 
-	includeScss : function (callback) {
+	updateScssController : function (callback) {
+		var _this       = this,
+				controllers = _this.config.sock.builders.scss;
 
+		if(controllers){
+			if(typeof controllers === 'string'){
+				var controllerPath = Vars.paths.projectRoot + '/' + controllers;
+
+				fs.readFile(
+					controllerPath, 'utf8', function (err, data) {
+						if (err) {
+							return console.log(err);
+						}
+
+						data = data.split(_this.config.componentGroupSeparator).
+										join('@import "' + _this.paths.component.relative + '/component";' + "\n" + _this.config.componentGroupSeparator);
+
+						console.log(data);
+
+						fs.writeFile(
+							controllerPath,
+							data,
+							function (err) {
+								if (err) {
+									return console.error(err);
+								}
+
+								Log.status('Updated project\'s SCSS controller');
+								callback();
+							}
+						);
+					}
+				);
+
+			}else{
+				/* @TODO Add capability of inserting into multiple controllers */
+				console.log();
+			}
+		}
 	},
 
 /**-----------------------------------------------------------------------------
- * ENDOF: includeScss
+ * ENDOF: updateScssController
  * -----------------------------------------------------------------------------*/
 
 
