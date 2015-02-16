@@ -7,7 +7,8 @@ var fs    = require('fs'),
 		Spider= {};
 
 
-var Create=require('../app/Create');
+var _delete = require('../app/Delete');
+var _init = require('../app/Init');
 
 // Verbalize `runner`
 log.runner = 'spider';
@@ -18,54 +19,54 @@ switch (argv._[0]){
 	/* add an existing Spider as part of existing project */
 	case 'add':
 	case 'a':
-		//Add;
+		//require('../app/Add');
 		break;
 
 
 	/* create new Spider as part of existing project */
 	case 'create':
 	case 'c':
-		Create;
+		require('../app/Create');
 		break;
 
 
 	/* Init a new Spider in it's own repo and directory */
 	case 'init':
 	case 'i':
-		//Init;
+		new _init(argv);
 		break;
 
-
-	/* Rename Spider's slug (locations as it was) */
-	case 'rename':
-	case 'r':
-		//Rename;
-		break;
 
 
 	/* Change Spider's location: functional group, scope and slug */
 	case 'move':
 	case 'm':
-		//Move;
+		//require('../app/Move');
 		break;
 
 
 	/* Delete a component from a project*/
 	case 'delete':
 	case 'd':
-		//Delete;
+		new _delete(argv);
 		break;
 
 
 	case 'update':
 	case 'u':
-		//Update;
+		//require('../app/Update');
 		break;
 
 
 
 	/* Change Spider's location: functional group, scope and slug */
   case 'install':
-  	//Install;
+  	//require('../app/Install');
   	break;
+
+
+  case 'help':
+  default:
+    //require('../app/Help');
+    break;
 }

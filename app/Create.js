@@ -347,7 +347,6 @@ Create.prototype = {
 			/* cache current component's controller marker/separator */
 			this.config.componentGroupSeparator = Vars.projectControllerMarker.split('{{type}}').join(this.component.type);
 
-			console.log(this.config.componentGroupSeparator);
 
 			Log.status('Resolved all necessary paths');
 			callback();
