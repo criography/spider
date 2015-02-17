@@ -860,8 +860,6 @@ Create.prototype = {
 						data = data.split(_this.config.componentGroupSeparator).
 										join('@import "' + _this.paths.component.relative + '/component";' + "\n" + _this.config.componentGroupSeparator);
 
-						console.log(data);
-
 						fs.writeFile(
 							controllerPath,
 							data,

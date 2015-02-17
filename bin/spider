@@ -48,6 +48,7 @@ switch (argv._[0]){
 	/* Delete a component from a project*/
 	case 'delete':
 	case 'd':
+	/* support tabbing via https://github.com/mklabs/node-tabtab or similar */
 		new _delete(argv);
 		break;
 

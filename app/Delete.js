@@ -104,13 +104,19 @@ Delete.prototype.init = function () {
 				},
 
 				function (callback) {
-					_this.cleanupProject(callback);
+					_this.cleanupSpidersockJson(callback);
+				},
+
+				function (callback) {
+					_this.cleanupScssController(callback);
 				}
 
 			],
 
 			function (err) {
-				callback();
+				if (err) {
+					return console.error(err);
+				}
 			}
 		);
 	}
@@ -253,19 +259,118 @@ Delete.prototype.deleteComponent = function (callback) {
 
 
 /**-----------------------------------------------------------------------------
- * cleanupProject
+ * cleanupSpidersockJson
  * -----------------------------------------------------------------------------
  * define what gets triggered when based on CMD arguments
  *
  * @constructor
  * @return void
  * -----------------------------------------------------------------------------*/
-Delete.prototype.cleanupProject = function (callback) {
+Delete.prototype.cleanupSpidersockJson = function (callback) {
+
+	var _this = this;
+
+	/* @TODO inject the right repo details or fall back to empty string */
+	var _entry =  _this.config.sock.dependencies[
+									_this.component.type + '/' + _this.component.group + '/' + _this.component.slug
+								];
+
+
+	if(!_entry){
+		Log.error('Couldn\'t find component\'s reference in spidersock.json');
+
+	}else{
+		delete  _this.config.sock.dependencies[
+		_this.component.type + '/' + _this.component.group + '/' + _this.component.slug
+			];
+
+
+		fs.writeFile(
+			_this.paths.config.sock,
+			JSON.stringify(_this.config.sock, null, "\t"),
+			function (err) {
+				if (err) {
+					return console.error(err);
+				}
+
+				Log.status('Updated project\'s spidersock.json');
+				callback();
+			}
+		);
+
+	}
 
 
 };
 /**-----------------------------------------------------------------------------
- * ENDOF: cleanupProject
+ * ENDOF: cleanupSpidersockJson
+ * -----------------------------------------------------------------------------*/
+
+
+
+
+
+
+
+
+/**-----------------------------------------------------------------------------
+ * cleanupScssController
+ * -----------------------------------------------------------------------------
+ * define what gets triggered when based on CMD arguments
+ *
+ * @constructor
+ * @return void
+ * -----------------------------------------------------------------------------*/
+Delete.prototype.cleanupScssController = function (callback) {
+
+	var _this       = this,
+	    controllers = _this.config.sock.builders.scss,
+	    _entry      = '@import "' + _this.paths.component.relative + '/component";' + "\n";
+
+	if (controllers) {
+		if (typeof controllers === 'string') {
+			var controllerPath = Vars.paths.projectRoot + '/' + controllers;
+
+			fs.readFile(
+				controllerPath, 'utf8', function (err, data) {
+					if (err) {
+						return console.log(err);
+					}
+
+					if (data.indexOf(_entry)<0) {
+						Log.error('Couldn\'t find component\'s reference in project\'s SCSS controller');
+
+					} else {
+						data = data.split(_entry).join('');
+
+						fs.writeFile(
+							controllerPath,
+							data,
+							function (err) {
+								if (err) {
+									return console.error(err);
+								}
+
+								Log.status('Updated project\'s SCSS controller');
+								callback();
+							}
+						);
+
+					}
+
+
+				}
+			);
+
+		} else {
+			/* @TODO Add capability of inserting into multiple controllers */
+			console.log();
+		}
+	}
+
+};
+/**-----------------------------------------------------------------------------
+ * ENDOF: cleanupScssController
  * -----------------------------------------------------------------------------*/
 
 
